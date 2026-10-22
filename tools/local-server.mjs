@@ -3,6 +3,8 @@ import {PGlite} from '@electric-sql/pglite';
 import {createServer as createVite} from 'vite';
 import {SQLStore} from '../server/store.mjs';
 import {makeHandler} from '../server/http.mjs';
+import {mkdir} from 'node:fs/promises';
+await mkdir('.local-data',{recursive:true});
 const db=new PGlite('.local-data/database');
 const store=new SQLStore((q,p)=>db.query(q,p),fn=>db.transaction(tx=>fn((q,p)=>tx.query(q,p))));await store.init();
 if(!process.env.ADMIN_USERNAME||!process.env.ADMIN_INITIAL_PASSWORD) {console.error('Set ADMIN_USERNAME and ADMIN_INITIAL_PASSWORD (12+ characters) in the current terminal before starting.');process.exit(1);}
