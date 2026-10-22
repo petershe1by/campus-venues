@@ -1,0 +1,7 @@
+{
+  "name": "campus-venues", "version": "1.0.0", "private": true, "type": "module",
+  "scripts": { "dev": "vite --host 127.0.0.1", "build": "vite build", "preview": "vite preview --host 127.0.0.1", "test": "node --test tests/*.test.mjs", "dev:full": "node tools/local-server.mjs" },
+  "engines": { "node": ">=22.13" },
+  "dependencies": { "react": "^19.0.0", "react-dom": "^19.0.0", "lucide-react": "^0.468.0", "exceljs": "^4.4.0", "postgres": "^3.4.7" },
+  "devDependencies": { "vite": "^7.0.0", "@electric-sql/pglite": "^0.3.14" }
+}
