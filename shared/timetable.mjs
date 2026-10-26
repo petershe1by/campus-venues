@@ -1,4 +1,4 @@
-import {normalizeBooking,addDays,validDate,weekday} from './domain.mjs';
+import {normalizeBooking,addDays,validDate,weekday,VENUES} from './domain.mjs';
 export function parseCSV(text) {
   const rows=[]; let row=[],cell='',quoted=false;
   text=text.replace(/^\uFEFF/,'');
@@ -34,7 +34,8 @@ export function convertRows(table,semesterMonday='') {
     const values=table[i];if(!values.some(x=>normalizeCell(x)))continue;
     const get=h=>values[idx(h)]??'';
     try {
-      const venue=({'操场':'field','体育馆':'gym',field:'field',gym:'gym'})[normalizeCell(get('场地'))];
+      const venueText=normalizeCell(get('场地'));
+      const venue=VENUES.find(v=>v.name===venueText||v.id===venueText)?.id;
       const input={venue,start:timeCell(get('开始时间')),end:timeCell(get('结束时间')),title:normalizeCell(get('课程名称')),organization:'体育部'};
       let date=normalizeCell(get('日期')).replace(/\//g,'-');
       if(date) {rows.push({...normalizeBooking({...input,date}),sourceRow:i+1});}

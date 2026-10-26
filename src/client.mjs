@@ -1,17 +1,17 @@
 import {emptyState,today,addDays,weekday,addReservation,cancelReservation,importClasses,publicBooking,activeBookings,audit} from '../shared/domain.mjs';
-const KEY='campus-venues-demo-v1';
+const KEY='campus-venues-demo-v2';
 export const API_ENABLED=import.meta.env.VITE_API_ENABLED==='true';
 const publicUser=u=>u?Object.fromEntries(['id','username','name','organization','role','disabled','mustChangePassword'].map(k=>[k,u[k]])):null;
 export function createDemo() {
-  const state=emptyState();
+  const state=emptyState();state.version=2;
   state.users=[{id:'demo-admin',username:'demo_admin',name:'演示管理员',organization:'体育部',role:'admin',disabled:false},{id:'demo-member',username:'demo_team',name:'演示申请人',organization:'学生体育协会',role:'member',disabled:false}];
   const monday=addDays(today(),-weekday(today()));
-  const patterns=[['field','08:00','09:35','大学体育 · 田径','class'],['gym','10:00','11:35','大学体育 · 羽毛球','class'],['field','15:00','17:00','校队日常训练','event'],['gym','14:00','15:35','大学体育 · 篮球','class'],['field','09:00','11:00','院系足球友谊赛','event'],['gym','16:00','18:00','羽毛球社团活动','event']];
+  const patterns=[['south-field','08:00','09:35','大学体育 · 田径','class'],['new-gym','10:00','11:35','大学体育 · 羽毛球','class'],['south-field','15:00','17:00','校队日常训练','event'],['new-gym','14:00','15:35','大学体育 · 篮球','class'],['north-field','09:00','11:00','院系足球友谊赛','event'],['old-gym','16:00','18:00','羽毛球社团活动','event']];
   for(let day=0;day<21;day++) {if(day%7===6)continue;const pattern=patterns[day%patterns.length];state.bookings.push({id:`demo-${day}`,date:addDays(monday,day),venue:pattern[0],start:pattern[1],end:pattern[2],title:pattern[3],type:pattern[4],organization:pattern[4]==='class'?'体育部':'学生体育协会',createdBy:pattern[4]==='class'?'demo-admin':'demo-member',createdByName:pattern[4]==='class'?'演示管理员':'演示申请人',createdByUsername:pattern[4]==='class'?'demo_admin':'demo_team',createdAt:new Date().toISOString()});}
   return state;
 }
 let memory;
-function loadDemo() {if(memory)return memory;try{const s=JSON.parse(localStorage.getItem(KEY));if(s?.version===1&&Array.isArray(s.users)&&Array.isArray(s.bookings))return memory=s;}catch{}return memory=createDemo();}
+function loadDemo() {if(memory)return memory;try{const s=JSON.parse(localStorage.getItem(KEY));if(s?.version===2&&Array.isArray(s.users)&&Array.isArray(s.bookings))return memory=s;}catch{}return memory=createDemo();}
 function saveDemo(s) {memory=s;try{localStorage.setItem(KEY,JSON.stringify(s));}catch{}}
 export function resetDemo() {memory=createDemo();saveDemo(memory);sessionStorage.removeItem('venue-demo-user');}
 export async function call(path,body,demo=false) {
@@ -40,9 +40,9 @@ export async function call(path,body,demo=false) {
       const username=String(body.username||'').toLowerCase().trim(),name=String(body.name||'').trim();
       if(!/^[a-z0-9_.-]{3,32}$/.test(username)||name.length<2||name.length>40)throw new Error('请填写有效账号（3–32 位英文/数字）和名称（2–40 字）');
       if(s.users.some(x=>x.username===username))throw new Error('账号已存在');
-      const u={id:crypto.randomUUID(),username,name,organization:String(body.organization||''),role:'member',disabled:false};draft.users.push(u);audit(draft,user,'account.create',u.id);result={user:publicUser(u),temporaryPassword:'演示账号不使用密码'};
+      const u={id:crypto.randomUUID(),username,name,organization:String(body.organization||''),role:'member',disabled:false};draft.users.push(u);audit(draft,user,'account.create',u.id);result={user:publicUser(u),temporaryPassword:'123456789'};
     } else if(path==='accounts/update') {const u=draft.users.find(x=>x.id===body.id&&x.role!=='admin');if(!u)throw new Error('账号不可操作');u.disabled=body.disabled;audit(draft,user,u.disabled?'account.disable':'account.enable',u.id);result={ok:true};}
-    else if(path==='accounts/reset')result={user:publicUser(s.users.find(x=>x.id===body.id)),temporaryPassword:'演示账号不使用密码'};
+    else if(path==='accounts/reset')result={user:publicUser(s.users.find(x=>x.id===body.id)),temporaryPassword:'123456789'};
     else throw new Error('操作不存在');
   }
   saveDemo(draft);return result;

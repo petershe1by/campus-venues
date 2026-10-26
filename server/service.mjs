@@ -2,12 +2,13 @@ import { scrypt,randomBytes,timingSafeEqual,createHash } from 'node:crypto';
 import {promisify} from 'node:util';
 import {addReservation,cancelReservation,importClasses,activeBookings,publicBooking,audit} from '../shared/domain.mjs';
 const derive=promisify(scrypt);
+export const INITIAL_ACCOUNT_PASSWORD='123456789';
 export async function hashPassword(password) {const salt=randomBytes(16).toString('hex');const hash=await derive(password,salt,64);return `${salt}:${hash.toString('hex')}`;}
 export async function checkPassword(password,encoded) {const [salt,hex]=encoded.split(':');const actual=await derive(password,salt,64);return timingSafeEqual(Buffer.from(hex,'hex'),actual);}
 const digest=s=>createHash('sha256').update(s).digest('hex');
 const safeUser=u=>u?Object.fromEntries(['id','username','name','organization','role','disabled','mustChangePassword','createdAt'].map(k=>[k,u[k]])):null;
 const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status});};
-function passwordValid(p) {if(typeof p!=='string'||p.length<12||p.length>128)fail('密码须为 12–128 位');}
+function passwordValid(p) {if(typeof p!=='string'||!p.length)fail('请输入密码');}
 function authenticated(state,token) {const s=state.sessions.find(x=>x.hash===digest(token||'')&&x.expires>Date.now());return s?state.users.find(u=>u.id===s.userId&&!u.disabled):null;}
 export async function dispatch(state,path,body,token,env={},ip='local') {
   const user=authenticated(state,token);
@@ -18,7 +19,6 @@ export async function dispatch(state,path,body,token,env={},ip='local') {
     if(state.attempts.filter(x=>x.key===key).length>=12)fail('尝试次数过多，请 10 分钟后再试',429);
     state.attempts.push({key,at:Date.now()});
     const username=String(body.username||'').toLowerCase().trim();const password=String(body.password||'');
-    if(password.length>128)fail('账号或密码错误',401);
     let account=state.users.find(u=>u.username===username);
     if(!state.users.length&&env.ADMIN_USERNAME&&env.ADMIN_INITIAL_PASSWORD) {
       passwordValid(env.ADMIN_INITIAL_PASSWORD);
@@ -53,14 +53,14 @@ export async function dispatch(state,path,body,token,env={},ip='local') {
     if(name.length<2||name.length>40)fail('使用人名称须为 2–40 字');
     if(organization.length>60)fail('组织名称最多 60 字');
     if(state.users.some(u=>u.username===username))fail('账号已存在');
-    const temporaryPassword=randomBytes(12).toString('base64url');
+    const temporaryPassword=INITIAL_ACCOUNT_PASSWORD;
     const u={id:crypto.randomUUID(),username,name,organization,role:'member',disabled:false,mustChangePassword:true,passwordHash:await hashPassword(temporaryPassword),createdAt:new Date().toISOString()};
     state.users.push(u);audit(state,user,'account.create',u.id);return {user:safeUser(u),temporaryPassword};
   }
   if(path==='accounts/update'||path==='accounts/reset') {
     const u=state.users.find(u=>u.id===body.id);if(!u||u.role==='admin')fail('只能操作申请账号');
     state.sessions=state.sessions.filter(s=>s.userId!==u.id);
-    if(path==='accounts/reset') {const temporaryPassword=randomBytes(12).toString('base64url');u.passwordHash=await hashPassword(temporaryPassword);u.mustChangePassword=true;audit(state,user,'account.reset',u.id);return {user:safeUser(u),temporaryPassword};}
+    if(path==='accounts/reset') {const temporaryPassword=INITIAL_ACCOUNT_PASSWORD;u.passwordHash=await hashPassword(temporaryPassword);u.mustChangePassword=true;audit(state,user,'account.reset',u.id);return {user:safeUser(u),temporaryPassword};}
     if(typeof body.disabled!=='boolean')fail('账号状态无效');u.disabled=body.disabled;audit(state,user,u.disabled?'account.disable':'account.enable',u.id);return {user:safeUser(u)};
   }
   if(path==='timetable')return importClasses(state,body.rows,user,body.mode);
