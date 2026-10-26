@@ -26,6 +26,7 @@ function App() {
   useEffect(()=>{if(!notice)return;const t=setTimeout(()=>setNotice(null),6000);return()=>clearTimeout(t);},[notice]);
   async function refresh() {setLoading(true);setError('');try{const [s,u]=await Promise.all([api('schedule'),api('session')]);setBookings(s.bookings);setUpdated(s.updatedAt);setUser(u.user);if(u.user&&!u.user.mustChangePassword){const data=await api('mine');setMine(data.bookings);if(u.user.role==='admin')setAdmin(await api('admin'));}else{setMine([]);setAdmin({users:[],bookings:[],audit:[]});}if(u.user?.mustChangePassword)setModal({type:'password',required:true});}catch(e){setError(e.message);}finally{setLoading(false);}}
   useEffect(()=>{refresh();},[demo]);
+  useEffect(()=>{const sync=()=>{if(document.visibilityState==='visible')refresh();};const timer=setInterval(sync,60000);window.addEventListener('focus',sync);return()=>{clearInterval(timer);window.removeEventListener('focus',sync);};},[demo]);
   async function run(fn,success) {setBusy(true);try{await fn();await refresh();if(success)flash(success);return true;}catch(e){flash(e.message,'error');return false;}finally{setBusy(false);}}
   function switchDemo(value) {setUser(null);setView('calendar');setModal(null);setDemo(value);const u=new URL(location.href);value?u.searchParams.set('demo','1'):u.searchParams.delete('demo');history.replaceState(null,'',u);}
   function navigate(v){setView(v);setMenu(false);}

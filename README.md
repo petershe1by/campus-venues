@@ -2,7 +2,9 @@
 
 操场 / 体育馆的多日期预约日历。中文界面，双周与月视图，上午、下午 / 晚间分栏，精确到分钟预约，支持体育课表导入。
 
-**本次交付阶段：GitHub Pages 公开预览。没有部署 Netlify。真实账号与共享写入暂未启用。**
+**GitHub Pages 保留公开预览；Netlify 正式版启用真实账号和数据库共享预约。**
+
+- [Netlify 正式网站](https://campus-venues-petershe1by.netlify.app/)
 
 - [公开预览](https://petershe1by.github.io/campus-venues/)
 - [完整流程演示](https://petershe1by.github.io/campus-venues/?demo=1)
@@ -11,7 +13,7 @@
 
 打开完整流程演示，点击“账号登录”，选择“演示管理员”或“演示申请人”。演示数据只保存在当前浏览器；演示角色无需密码，不构成真实身份认证。可在“预约须知”重置演示数据。
 
-公开页面默认使用 `public/schedule.json` 的空日历，没有把示例活动冒充真实预约。真实体育部课表尚未提供。需要在 GitHub 预览公开真实占用时，可由仓库管理员整理并更新该文件；只应放日期、场地、活动名称、时间和公开组织信息，不放填写人或账号信息。
+GitHub Pages 公开页面默认使用 `public/schedule.json` 的空日历，没有把示例活动冒充真实预约。真实体育部课表尚未提供。需要在 GitHub 预览公开真实占用时，可由仓库管理员整理并更新该文件；只应放日期、场地、活动名称、时间和公开组织信息，不放填写人或账号信息。
 
 ## 权限与记录
 
@@ -80,12 +82,12 @@ npm run build
 
 仓库 Settings → Pages → Source 设置为 **GitHub Actions**。`.github/workflows/pages.yml` 在 main 推送后执行测试、构建并部署，前端资源使用相对路径，适配 `/campus-venues/` 子目录。GitHub 构建明确关闭真实 API，账号服务显示“尚未启用”。
 
-## 以后再启用 Netlify（本次未执行）
+## Netlify 部署与维护
 
 1. 从此仓库创建 Netlify 项目；已有 `netlify.toml`（`npm run build`，发布 `dist`，函数在 `netlify/functions`）。
-2. 提供 PostgreSQL 数据库，可使用 Netlify DB 或兼容 PostgreSQL 服务。把连接字符串保存为服务端环境变量 `DATABASE_URL`，不要放到 GitHub、前端变量或代码中。
+2. 默认使用 Netlify Database，由 `@netlify/database` 获取当前部署的数据库连接；迁移在 `netlify/database/migrations/`。也可用服务端环境变量 `DATABASE_URL` 覆盖为外部 PostgreSQL，连接字符串不要放到 GitHub、前端变量或代码中。
 3. 服务端环境变量设置 `ADMIN_USERNAME` 和至少 12 位的 `ADMIN_INITIAL_PASSWORD`。第一次正确登录才初始化唯一大管理员，并要求改密。完成后移除初始密码变量，后续使用数据库保存的密码哈希。
-4. Netlify 构建环境下自动开启 `/api/*`；部署后测试游客日历、管理员初始化、账号分发、申请和课表导入。当前只完成本地/API 测试，尚未做 Netlify 云端验证。
+4. Netlify 构建环境下自动开启 `/api/*`；部署后测试游客日历、管理员初始化、账号分发、申请和课表导入。正式发布后按验收报告复核云端账号、并发预约、课表导入和数据清理。
 5. 在正式发布前按校内要求确认公开展示的活动名称和组织信息。填写人的姓名、账号、密码哈希、日志始终通过权限接口访问，不导出到静态目录。
 
 后端数据库使用专用 `campus_venues_state` 表。所有读写通过事务及 `SELECT ... FOR UPDATE` 串行化，避免同时申请导致重叠，也保证课表批量导入的原子性。适合小规模校内使用；大规模账号、预约和长期日志需迁移为独立关系表及归档策略。
@@ -94,6 +96,8 @@ npm run build
 
 ## 验证范围
 
-26 项自动化测试涵盖日期/时间、时段边界、跨午显示、CSV/Excel 单元格与周次展开、权限、填写人、防越权取消、账号停用与重置、Cookie、跨站写入拒绝、登录限流、并发冲突和事务回滚。API 测试使用真正的 PostgreSQL 引擎 PGlite。另做浏览器桌面/手机界面检查。
+29 项自动化测试涵盖日期/时间、时段边界、跨午显示、CSV/Excel 单元格与周次展开、权限、填写人、防越权取消、账号停用与重置、Cookie、跨站写入拒绝、登录限流、并发冲突和事务回滚。API 测试使用真正的 PostgreSQL 引擎 PGlite，并有真实 XLSX 二进制读写测试。浏览器已完成真实登录、XLSX 上传、周次展开、导入保存、跨午显示和冲突拦截；另做桌面/手机界面检查。
+
+日历在页面可见时每分钟同步一次，切回页面时也会同步。正式站公开、部署预览保持私密。测试账号会停用，测试预约会取消，审计历史保留。
 
 依据：[GitHub Pages 自定义工作流](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)、[Netlify Functions](https://docs.netlify.com/build/functions/api/)、[ExcelJS](https://github.com/exceljs/exceljs)。

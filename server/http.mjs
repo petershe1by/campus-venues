@@ -9,7 +9,9 @@ export function makeHandler(getStore,env=process.env,{secure=true}={}) {
     if((req.method==='GET')!==READ.has(path))return respond({error:'请求方法错误'},405);
     let body={};
     if(req.method==='POST') {
-      if(req.headers.get('origin')!==new URL(req.url).origin)return respond({error:'请求来源不匹配'},403);
+      const requestOrigin=req.headers.get('origin');
+      const allowedOrigin=new URL(req.url).origin;
+      if(requestOrigin!==allowedOrigin && !(!secure&&requestOrigin==='http://127.0.0.1:5173'))return respond({error:'请求来源不匹配'},403);
       if(!req.headers.get('content-type')?.startsWith('application/json'))return respond({error:'需要 JSON 请求'},415);
       if(Number(req.headers.get('content-length')||0)>1024*1024)return respond({error:'请求过大'},413);
       const text=await req.text();if(text.length>1024*1024)return respond({error:'请求过大'},413);

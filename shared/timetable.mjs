@@ -20,6 +20,7 @@ export function normalizeCell(value) {
   return String(value).trim();
 }
 export function timeCell(v) {
+  if(v&&typeof v==='object'&&!(v instanceof Date)&&v.result!=null)return timeCell(v.result);
   if(v instanceof Date) return v.toISOString().slice(11,16);
   if(typeof v==='number' && v>=0&&v<1) {const m=Math.round(v*1440);return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;}
   const s=normalizeCell(v).replace('：',':');const m=s.match(/^(\d{1,2}):(\d{2})(?::00)?$/);return m?`${m[1].padStart(2,'0')}:${m[2]}`:s;

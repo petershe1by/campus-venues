@@ -15,8 +15,13 @@ export class SQLStore {
 }
 let storePromise;
 export function productionStore() {
-  if(!process.env.DATABASE_URL)throw new Error('尚未配置 DATABASE_URL，账号服务未启用');
   if(!storePromise) storePromise=(async()=>{
+    if(!process.env.DATABASE_URL) {
+      const {getDatabase}=await import('@netlify/database');
+      const {pool}=getDatabase();
+      const transaction=async fn=>{const client=await pool.connect();try{await client.query('BEGIN');const value=await fn((q,p=[])=>client.query(q,p));await client.query('COMMIT');return value;}catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}};
+      const store=new SQLStore((q,p=[])=>pool.query(q,p),transaction);await store.init();return store;
+    }
     const sql=postgres(process.env.DATABASE_URL,{max:2,idle_timeout:20,connect_timeout:10,prepare:false});
     const query=async(q,p=[])=>({rows:await sql.unsafe(q,p)});
     const transaction=fn=>sql.begin(async s=>fn(async(q,p=[])=>({rows:await s.unsafe(q,p)})));

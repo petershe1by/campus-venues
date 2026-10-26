@@ -8,6 +8,7 @@ node_bundler = "esbuild"
 
 [build.environment]
 NODE_VERSION = "22"
+VITE_API_ENABLED = "true"
 
 [[headers]]
 for = "/*"
@@ -16,4 +17,4 @@ X-Content-Type-Options = "nosniff"
 Referrer-Policy = "strict-origin-when-cross-origin"
 X-Frame-Options = "DENY"
 
-# No Netlify site is linked and no Netlify deployment has been run.
+# Netlify Database is provisioned by the platform; migrations are tracked above.
